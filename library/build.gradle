@@ -1,0 +1,46 @@
+plugins {
+    id 'com.android.library'
+    id 'maven-publish'
+}
+
+android {
+    namespace 'sketchlib.scratchview'
+    compileSdk 34
+    defaultConfig {
+        minSdk 21
+    }
+    buildFeatures {
+        viewBinding false
+        dataBinding false
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'com.google.android.material:material:1.12.0'
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
+                groupId = 'com.github.sketchlibx'
+                artifactId = 'Lucky-Spin-Wheel'
+                version = '1.0'
+            }
+        }
+    }
+}

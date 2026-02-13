@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="ScratchView">
+        <attr name="sv_foilStartColor" format="color" />
+        <attr name="sv_foilEndColor" format="color" />
+        
+        <attr name="sv_borderStartColor" format="color" />
+        <attr name="sv_borderCenterColor" format="color" />
+        <attr name="sv_borderEndColor" format="color" />
+        
+        <attr name="sv_cornerRadius" format="dimension" />
+        <attr name="sv_borderSize" format="dimension" />
+        <attr name="sv_brushSize" format="dimension" />
+        <attr name="sv_thresholdPercent" format="float" />
+        
+        <attr name="sv_scratchText" format="string" />
+        <attr name="sv_scratchTextColor" format="color" />
+        <attr name="sv_scratchTextSize" format="dimension" />
+    </declare-styleable>
+</resources>
