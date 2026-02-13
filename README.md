@@ -27,15 +27,20 @@ dependencyResolutionManagement {
         maven { url '[https://jitpack.io](https://jitpack.io)' }
     }
 }
+```
 
 Step 2: Add the dependency to your app's build.gradle:
+```gradle
 dependencies {
     implementation 'com.github.sketchlibx:Scratch-View-Gradient:v1.0.0'
 }
+```
 
 🚀 Quick Start
 1. XML Implementation
 To show a prize behind the scratch card, place the ScratchView inside a RelativeLayout directly over your prize view (like a TextView or ImageView).
+
+```xml
 <RelativeLayout
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
@@ -63,9 +68,12 @@ To show a prize behind the scratch card, place the ScratchView inside a Relative
         app:sv_thresholdPercent="0.5" />
 
 </RelativeLayout>
+```
 
 2. Java / Kotlin Implementation (With Pop Animation)
 Set up the listener to detect when the user has scratched enough of the view to reveal the reward.
+
+```java
 import android.os.Bundle;
 import android.view.animation.OvershootInterpolator;
 import android.widget.TextView;
@@ -112,9 +120,12 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 }
+```
 
 🛠️ Programmatic Customization
 You can change all attributes dynamically at runtime:
+
+```java
 // Change Foil Colors
 scratchView.setFoilColors(Color.BLUE, Color.DKGRAY);
 
@@ -132,6 +143,7 @@ scratchView.setThresholdPercent(0.6f);
 
 // Reset the view to scratch again
 scratchView.reset();
+```
 
 🎨 XML Attributes
 | Attribute | Type | Default Value | Description |
@@ -163,8 +175,4 @@ furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 
-
----
-
-आपकी पहली लाइब्रेरी बहुत शानदार तरीके से पब्लिश हो गई है! 🚀 क्या आप इसे GitHub पर अपडेट करने के बाद किसी और टूल (जैसे आपके README Editor) पर काम करना चाहेंगे?
 
