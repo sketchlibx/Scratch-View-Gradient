@@ -1,4 +1,4 @@
-🚀 ScratchView Pro
+### 🚀 ScratchView Pro
 
 A smooth and reliable Scratch Card library for Android — built for real apps, not just demos.
 
@@ -8,7 +8,7 @@ ScratchView Pro is focused on performance, stability, and a clean user experienc
 
 ---
 
-✨ Why this library?
+## ✨ Why this library?
 
 Most scratch libraries do heavy bitmap work on the main thread, which leads to UI lag and poor performance.
 
@@ -22,7 +22,7 @@ So overall, the experience feels fast and responsive.
 
 ---
 
-🔥 Features
+# 🔥 Features
 
 - ⚡ Smooth performance (almost 60FPS feel)
 - 🖐️ Multi-touch support (scratch with multiple fingers)
@@ -59,7 +59,7 @@ dependencies {
 ```
 ---
 
-💻 How to use
+# 💻 How to use
 
 1️⃣ Add in XML
 
@@ -123,7 +123,7 @@ scratchView.setScratchListener(new ScratchView.ScratchListener() {
 scratchView.resetAnimated();
 ```
 
-🎨 Customization
+# 🎨 Customization
 
 Custom foil image
 
