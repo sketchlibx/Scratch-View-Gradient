@@ -2,35 +2,35 @@
 
 A smooth and reliable Scratch Card library for Android — built for real apps, not just demos.
 
-If you've ever tried scratch card libraries before, you probably noticed issues like lag, frame drops, or even crashes on low-end devices. That’s exactly why this library was created.
+If you've ever used a scratch card library before, you’ve probably faced issues like lag, frame drops, or even crashes on low-end devices. That’s exactly the problem this library tries to solve.
 
-ScratchView Pro focuses on performance, stability, and a clean user experience. It’s designed especially for apps where scratch cards are used for rewards, offers, or monetization.
+ScratchView Pro is focused on performance, stability, and a clean user experience. It’s made for real-world use cases like reward apps, offers, and monetization systems.
 
 ---
 
 ✨ Why this library?
 
-Most scratch libraries do heavy bitmap work on the main thread, which causes UI lag and poor performance.
+Most scratch libraries do heavy bitmap work on the main thread, which leads to UI lag and poor performance.
 
 In this library:
 
-- Scratch calculation runs in the background
-- UI stays smooth while scratching
-- Works well even on low-end devices
+- Scratch calculations run in the background
+- UI stays smooth while the user is scratching
+- Works properly even on low-end devices
 
-So the experience feels fast and responsive.
+So overall, the experience feels fast and responsive.
 
 ---
 
 🔥 Features
 
-- ⚡ Smooth performance (close to 60FPS feel)
-- 🖐️ Multi-touch support (use multiple fingers)
-- 📳 Haptic feedback for realistic scratching
-- 🎭 Custom foil & reward support
-- ✨ Auto reveal when threshold is reached
+- ⚡ Smooth performance (almost 60FPS feel)
+- 🖐️ Multi-touch support (scratch with multiple fingers)
+- 📳 Haptic feedback for a realistic feel
+- 🎭 Support for custom foil and reward images
+- ✨ Auto reveal when a threshold is reached
 - 🔄 Animated reset for new scratch cards
-- 📊 Easy to track scratch progress
+- 📊 Easy tracking of scratch progress
 
 ---
 
@@ -47,7 +47,7 @@ dependencyResolutionManagement {
         maven { url 'https://jitpack.io' }
     }
 }
-
+```
 ---
 
 Step 2: Add Dependency
@@ -96,7 +96,7 @@ scratchView.setScratchListener(new ScratchView.ScratchListener() {
 
     @Override
     public void onScratchProgress(float percent) {
-        // Update UI if needed (0.25 = 25%)
+        // Example: 0.25 = 25%
     }
 
     @Override
@@ -117,30 +117,28 @@ scratchView.setScratchListener(new ScratchView.ScratchListener() {
 });
 ```
 
----
-
 3️⃣ Reset for new card
 
 ```java
 scratchView.resetAnimated();
 ```
----
 
 🎨 Customization
 
-Use custom foil image
+Custom foil image
 
 ```java
 Bitmap foil = BitmapFactory.decodeResource(getResources(), R.drawable.gold_foil_texture);
 scratchView.setScratchOverlayBitmap(foil);
 ```
----
 
-Enable performance mode (for low-end devices)
+
+Performance mode (for low-end devices)
 
 ```java
 scratchView.setPerformanceMode(true);
 ```
+
 ---
 
 ⚙️ XML Attributes
@@ -160,11 +158,9 @@ sv_scratchText| Text on top
 
 If you find any issue or want to improve something:
 
-- Fork the repo
-- Make changes
-- Create a pull request
-
-Simple 👍
+- Fork the project
+- Make your changes
+- Open a pull request
 
 ---
 
@@ -176,8 +172,57 @@ MIT License
 
 💡 Tip
 
-If you're using this in your app, try adding a small animation or sound effect with scratching — it makes the experience feel much more premium.
+If you're using this in your app, try adding small sound effects or animations during scratching — it really improves the overall feel.
 
+---
+
+🔥 Example Usage (Advanced)
+
+```java
+ScratchView.SimpleReward reward = new ScratchView.SimpleReward("CASHBACK", 500);
+binding.scratchView.setReward(reward);
+
+binding.scratchView.setPerformanceMode(true);
+
+// Control reveal behavior
+binding.scratchView.setThresholdPercent(0.25f);
+binding.scratchView.setAutoRevealEnabled(true);
+
+binding.scratchView.setScratchListener(new ScratchView.ScratchListener() {
+
+    @Override
+    public void onScratchStart() {
+        binding.tvProgress.setText("Keep scratching...");
+    }
+
+    @Override
+    public void onScratchProgress(float percent) {
+        int progressInt = (int) (percent * 100);
+        binding.tvProgress.setText("Revealed: " + progressInt + "%");
+    }
+
+    @Override
+    public void onScratchEnd() {}
+
+    @Override
+    public void onRevealThresholdReached(float percent) {}
+
+    @Override
+    public void onRevealed(ScratchView.Reward reward) {
+        binding.tvProgress.setText("Card Fully Revealed!");
+
+        if (reward != null) {
+            int amount = (int) reward.getData();
+            Toast.makeText(MainActivity.this, "You won ₹" + amount + "!", Toast.LENGTH_SHORT).show();
+        }
+    }
+});
+
+binding.btnReset.setOnClickListener(v -> {
+    binding.scratchView.resetAnimated();
+    binding.tvProgress.setText("Scratch the card to win!");
+});
+```
 ---
 
 Built with focus on performance, simplicity, and real-world usage 🚀
