@@ -1,4 +1,4 @@
-### 🚀 ScratchView Pro
+# 🚀 ScratchView Pro
 
 A smooth and reliable Scratch Card library for Android — built for real apps, not just demos.
 
@@ -22,7 +22,7 @@ So overall, the experience feels fast and responsive.
 
 ---
 
-# 🔥 Features
+### 🔥 Features
 
 - ⚡ Smooth performance (almost 60FPS feel)
 - 🖐️ Multi-touch support (scratch with multiple fingers)
