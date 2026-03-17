@@ -22,7 +22,7 @@ So overall, the experience feels fast and responsive.
 
 ---
 
-### 🔥 Features
+## 🔥 Features
 
 - ⚡ Smooth performance (almost 60FPS feel)
 - 🖐️ Multi-touch support (scratch with multiple fingers)
@@ -59,7 +59,7 @@ dependencies {
 ```
 ---
 
-# 💻 How to use
+## 💻 How to use
 
 1️⃣ Add in XML
 
