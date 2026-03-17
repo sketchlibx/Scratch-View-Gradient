@@ -38,7 +38,7 @@ afterEvaluate {
             release(MavenPublication) {
                 from components.release
                 groupId = 'com.github.sketchlibx'
-                artifactId = 'Lucky-Spin-Wheel'
+                artifactId = 'library'
                 version = '1.0'
             }
         }

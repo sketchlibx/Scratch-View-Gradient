@@ -14,7 +14,6 @@ import androidx.annotation.Nullable;
 
 public class ScratchView extends View {
 	
-	// --- Dynamic Colors (With Defaults) ---
 	private int foilStartColor = Color.parseColor("#0F1C36");
 	private int foilEndColor = Color.parseColor("#051124");
 	
@@ -26,26 +25,23 @@ public class ScratchView extends View {
 	private float borderSize;
 	private float brushSize;
 	
-	// Text Properties
 	private String scratchText = "SCRATCH HERE";
 	private int scratchTextColor = Color.parseColor("#80FFFFFF");
 	private float scratchTextSize;
 	
-	// Paints
 	private Paint foilPaint;
 	private Paint borderPaint;
 	private Paint scratchPathPaint;
 	private Paint textPaint;
 	
-	// Scratch Logic
 	private Bitmap mScratchBitmap;
 	private Canvas mScratchCanvas;
 	private Path mPath;
 	private float lastX, lastY;
 	private boolean isRevealed = false;
 	private boolean isCalculating = false;
+	private boolean isScratchable = true;
 	
-	// Config
 	private float thresholdPercent = 0.4f; 
 	private ScratchListener listener;
 	private String hiddenText = "Reward";
@@ -70,13 +66,11 @@ public class ScratchView extends View {
 	}
 	
 	private void init(Context context, @Nullable AttributeSet attrs) {
-		// Default Sizes
 		cornerRadius = dpToPx(14);
 		borderSize = dpToPx(8);
 		brushSize = dpToPx(40);
 		scratchTextSize = dpToPx(22);
 		
-		// --- Read XML Attributes ---
 		if (attrs != null) {
 			TypedArray a = context.getTheme().obtainStyledAttributes(attrs, R.styleable.ScratchView, 0, 0);
 			try {
@@ -103,7 +97,6 @@ public class ScratchView extends View {
 		
 		mPath = new Path();
 		
-		// Setup Paints
 		scratchPathPaint = new Paint();
 		scratchPathPaint.setAntiAlias(true);
 		scratchPathPaint.setDither(true);
@@ -184,7 +177,7 @@ public class ScratchView extends View {
 	
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
-		if (isRevealed) return true;
+		if (!isScratchable || isRevealed) return true;
 		
 		float x = event.getX();
 		float y = event.getY();
@@ -217,7 +210,6 @@ public class ScratchView extends View {
 		if (isCalculating || isRevealed) return;
 		isCalculating = true;
 		
-		// Modern threading instead of AsyncTask
 		new Thread(() -> {
 			if (mScratchBitmap == null) {
 				isCalculating = false;
@@ -234,7 +226,6 @@ public class ScratchView extends View {
 			}
 			final float percent = (float) revealed / ((w / step) * (h / step));
 			
-			// Post result back to main thread
 			post(() -> {
 				isCalculating = false;
 				if (percent >= thresholdPercent) {
@@ -266,8 +257,6 @@ public class ScratchView extends View {
 		});
 		anim.start();
 	}
-	
-	// --- JAVA SETTERS FOR PROGRAMMATIC CUSTOMIZATION ---
 	
 	public void setFoilColors(int startColor, int endColor) {
 		this.foilStartColor = startColor;
@@ -302,6 +291,14 @@ public class ScratchView extends View {
 	
 	public void setScratchListener(ScratchListener listener) {
 		this.listener = listener;
+	}
+	
+	public void setScratchable(boolean scratchable) {
+		this.isScratchable = scratchable;
+	}
+	
+	public void mask() {
+		reset();
 	}
 	
 	public void reset() {
