@@ -11,10 +11,22 @@ android {
     }
     buildFeatures {
         viewBinding false
+        dataBinding false
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
     }
 }
 
 dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.appcompat:appcompat:1.7.1'
