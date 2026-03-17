@@ -11,17 +11,6 @@ android {
     }
     buildFeatures {
         viewBinding false
-        dataBinding false
-    }
-    buildTypes {
-        release {
-            minifyEnabled false
-        }
-    }
-    publishing {
-        singleVariant("release") {
-            withSourcesJar()
-        }
     }
 }
 
