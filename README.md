@@ -1,10 +1,10 @@
-# Scratch-View-Gradient ðŸŽŸï¸
+# Scratch-View-Gradient 🎟️
 
 A highly customizable, modern, and smooth Scratch-off (Lottery Ticket) View for Android. 
 
 Built with performance in mind, it features dynamic gradient foils, custom brush sizes, auto-reveal animations, and background threading to ensure your app's UI never freezes while scratching.
 
-## âœ¨ Features
+## ✨ Features
 * **Modern Gradients:** Support for LinearGradient foil and border colors.
 * **Auto-Reveal Animation:** Automatically clears the view smoothly when a certain threshold is scratched.
 * **Custom Brush & Corners:** Fully control the brush size, border thickness, and corner radius.
@@ -14,7 +14,7 @@ Built with performance in mind, it features dynamic gradient foils, custom brush
 
 ---
 
-## ðŸ“¦ Installation
+## 📦 Installation
 
 **Step 1:** Add JitPack to your project's root `settings.gradle` or `build.gradle` at the end of repositories:
 
@@ -36,7 +36,7 @@ dependencies {
 }
 ```
 
-ðŸš€ Quick Start
+🚀 Quick Start
 1. XML Implementation
 To show a prize behind the scratch card, place the ScratchView inside a RelativeLayout directly over your prize view (like a TextView or ImageView).
 
@@ -50,7 +50,7 @@ To show a prize behind the scratch card, place the ScratchView inside a Relative
         android:id="@+id/prizeText"
         android:layout_width="300dp"
         android:layout_height="300dp"
-        android:text="â‚¹500 Cashback!"
+        android:text="₹500 Cashback!"
         android:textSize="32sp"
         android:textColor="#4CAF50"
         android:textStyle="bold"
@@ -122,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
 }
 ```
 
-ðŸ› ï¸ Programmatic Customization
+🛠️ Programmatic Customization
 You can change all attributes dynamically at runtime:
 
 ```java
@@ -145,7 +145,7 @@ scratchView.setThresholdPercent(0.6f);
 scratchView.reset();
 ```
 
-ðŸŽ¨ XML Attributes
+🎨 XML Attributes
 | Attribute | Type | Default Value | Description |
 |---|---|---|---|
 | sv_foilStartColor | color | #0F1C36 | Foil gradient start color. |
@@ -160,7 +160,7 @@ scratchView.reset();
 | sv_scratchTextColor | color | #80FFFFFF | Color of the overlay text. |
 | sv_scratchTextSize | dimension | 22dp | Size of the overlay text. |
 | sv_thresholdPercent | float | 0.4 (40%) | Percentage to scratch before auto-reveal. |
-ðŸ“ License
+📝 License
 MIT License
 
 Copyright (c) 2026 SketchLib
@@ -174,4 +174,5 @@ furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
+
 
