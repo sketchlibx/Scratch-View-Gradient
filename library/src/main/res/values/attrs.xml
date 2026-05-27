@@ -1,22 +1,30 @@
 <resources>
-    <declare-styleable name="ScratchView">
-        <attr name="sv_foilStartColor" format="color" />
-        <attr name="sv_foilEndColor" format="color" />
-        <attr name="sv_borderStartColor" format="color" />
-        <attr name="sv_borderCenterColor" format="color" />
-        <attr name="sv_borderEndColor" format="color" />
+    <declare-styleable name="AdvancedScratchView">
         <attr name="sv_cornerRadius" format="dimension" />
-        <attr name="sv_borderSize" format="dimension" />
+        <attr name="sv_borderWidth" format="dimension" />
+        <attr name="sv_borderColor" format="color" />
+        <attr name="sv_glassEffectEnabled" format="boolean" />
+        <attr name="sv_metallicFoilEffect" format="boolean" />
+        <attr name="sv_neonGlowEnabled" format="boolean" />
+        
         <attr name="sv_brushSize" format="dimension" />
-        <attr name="sv_thresholdPercent" format="float" />
-        <attr name="sv_scratchText" format="string" />
-        <attr name="sv_scratchTextColor" format="color" />
-        <attr name="sv_scratchTextSize" format="dimension" />
-        <attr name="sv_hapticEnabled" format="boolean" />
-        <attr name="sv_animationsEnabled" format="boolean" />
-        <attr name="sv_revealType">
+        <attr name="sv_scratchOpacity" format="float" />
+        <attr name="sv_multiTouchEnabled" format="boolean" />
+        
+        <attr name="sv_revealThreshold" format="float" />
+        <attr name="sv_autoRevealEnabled" format="boolean" />
+        <attr name="sv_revealAnimationType" format="enum">
             <enum name="fade" value="0"/>
-            <enum name="expand_circle" value="1"/>
+            <enum name="circular_expand" value="1"/>
+            <enum name="explosion" value="2"/>
         </attr>
+        <attr name="sv_revealDuration" format="integer" />
+        <attr name="sv_particlesEnabled" format="boolean" />
+
+        <attr name="sv_scratchText" format="string" />
+        <attr name="sv_scratchTextSize" format="dimension" />
+        <attr name="sv_scratchTextColor" format="color" />
+        
+        <attr name="sv_performanceMode" format="boolean" />
     </declare-styleable>
 </resources>

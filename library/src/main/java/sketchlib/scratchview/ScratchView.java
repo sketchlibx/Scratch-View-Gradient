@@ -16,8 +16,9 @@ import android.view.MotionEvent;
 import android.view.View;
 import androidx.annotation.Nullable;
 
+/*
 public class ScratchView extends View {
-
+    
     public enum RevealType { FADE, EXPAND_CIRCLE }
     public enum ScratchDirection { ANY, HORIZONTAL, VERTICAL }
 
@@ -413,3 +414,4 @@ public class ScratchView extends View {
         @Override public Object getData() { return data; }
     }
 }
+*/
