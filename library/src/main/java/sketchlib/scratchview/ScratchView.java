@@ -6,22 +6,23 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.*;
-import android.os.Bundle;
-import android.os.Parcelable;
+import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.AttributeSet;
-import android.util.SparseArray;
-import android.util.TypedValue;
 import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
-import android.view.View;
+import android.widget.FrameLayout;
+
 import androidx.annotation.Nullable;
 
-/*
-public class ScratchView extends View {
-    
-    public enum RevealType { FADE, EXPAND_CIRCLE }
-    public enum ScratchDirection { ANY, HORIZONTAL, VERTICAL }
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+// 🔴 FIX: Extends FrameLayout instead of View so it can hold child layouts
+public class ScratchView extends FrameLayout {
+
+    // Interfaces
     public interface Reward {
         String getType();
         Object getData();
@@ -32,386 +33,314 @@ public class ScratchView extends View {
         void onScratchProgress(float percent);
         void onScratchEnd();
         void onRevealed(Reward reward);
-        void onRevealThresholdReached(float percent); 
     }
 
-    private ScratchListener listener = new ScratchListener() {
-        @Override public void onScratchStart() {}
-        @Override public void onScratchProgress(float percent) {}
-        @Override public void onScratchEnd() {}
-        @Override public void onRevealed(Reward reward) {}
-        @Override public void onRevealThresholdReached(float percent) {}
-    };
+    // Engines
+    private BezierPathManager pathManager;
+    private ParticleEngine particleEngine;
+    private ExecutorService asyncExecutor;
+    private Handler mainHandler;
 
-    private int foilStartColor = Color.parseColor("#0F1C36");
-    private int foilEndColor = Color.parseColor("#051124");
-    private int borderStartColor = Color.parseColor("#200E35");
-    private int borderCenterColor = Color.parseColor("#381B5D");
-    private int borderEndColor = Color.parseColor("#582C8E");
+    // Paints
+    private Paint scratchPaint;
+    private Paint overlayPaint;
+    private Paint glassBorderPaint;
+    private Paint textPaint;
 
-    private float cornerRadius, borderSize, brushSize, scratchTextSize;
-    private String scratchText = "SCRATCH HERE";
-    private int scratchTextColor = Color.parseColor("#80FFFFFF");
-
-    private Paint foilPaint, borderPaint, scratchPathPaint, textPaint;
-    private Paint bitmapPaint; 
-
+    // Bitmaps & Canvas
     private Bitmap mScratchBitmap;
     private Canvas mScratchCanvas;
-    
-    private Bitmap overlayBitmap, scaledOverlayBitmap; 
-    private Bitmap revealBitmap, scaledRevealBitmap;  
+    private Bitmap overlayImage;
 
-    private SparseArray<Path> mPaths = new SparseArray<>();
-    private SparseArray<PointF> mLastPoints = new SparseArray<>();
+    // Clipping tools to hide background outside the outline
+    private Path clipPath;
+    private RectF clipRect;
 
+    // Configurations
+    private float brushSize = 50f;
+    private float cornerRadius = 30f;
+    private float revealThreshold = 0.4f; // 40%
+    private boolean autoReveal = true;
     private boolean isRevealed = false;
-    private boolean isCalculating = false;
+    private boolean glassEffectEnabled = true;
+    private boolean particlesEnabled = true;
     private boolean isScratchable = true;
-    private boolean isScratching = false;
+    private String scratchText = "SCRATCH HERE";
+    private int foilColor = Color.parseColor("#1E293B");
 
-    private float thresholdPercent = 0.4f;
-    private boolean autoRevealEnabled = true;
-    private boolean hapticEnabled = true;
-    private boolean performanceMode = false;
-    private boolean animationsEnabled = true;
-    private RevealType revealType = RevealType.FADE;
-    private ScratchDirection scratchDirection = ScratchDirection.ANY;
-    
-    private Reward hiddenReward = new SimpleReward("Text", "Reward");
+    // State
+    private boolean isCalculating = false;
+    private Reward currentReward;
+    private ScratchListener listener;
 
-    private long lastHapticTime = 0;
-    private long lastCheckTime = 0;
+    public ScratchView(Context context) {
+        super(context);
+        init(context, null);
+    }
 
-    public ScratchView(Context context) { super(context); init(context, null); }
-    public ScratchView(Context context, @Nullable AttributeSet attrs) { super(context, attrs); init(context, attrs); }
-    public ScratchView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) { super(context, attrs, defStyleAttr); init(context, attrs); }
+    public ScratchView(Context context, @Nullable AttributeSet attrs) {
+        super(context, attrs);
+        init(context, attrs);
+    }
 
-    private void init(Context context, @Nullable AttributeSet attrs) {
-        cornerRadius = dpToPx(14); borderSize = dpToPx(8);
-        brushSize = dpToPx(40); scratchTextSize = dpToPx(22);
+    private void init(Context context, AttributeSet attrs) {
+        // 🔴 Ensure FrameLayout calls its draw methods
+        setWillNotDraw(false);
 
-        if (attrs != null) {
-            TypedArray a = context.getTheme().obtainStyledAttributes(attrs, R.styleable.ScratchView, 0, 0);
-            try {
-                foilStartColor = a.getColor(R.styleable.ScratchView_sv_foilStartColor, foilStartColor);
-                foilEndColor = a.getColor(R.styleable.ScratchView_sv_foilEndColor, foilEndColor);
-                brushSize = a.getDimension(R.styleable.ScratchView_sv_brushSize, brushSize);
-                thresholdPercent = a.getFloat(R.styleable.ScratchView_sv_thresholdPercent, thresholdPercent);
-                hapticEnabled = a.getBoolean(R.styleable.ScratchView_sv_hapticEnabled, hapticEnabled);
-            } finally {
-                a.recycle();
-            }
-        }
+        pathManager = new BezierPathManager();
+        particleEngine = new ParticleEngine(this);
+        asyncExecutor = Executors.newSingleThreadExecutor();
+        mainHandler = new Handler(Looper.getMainLooper());
 
-        scratchPathPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        scratchPathPaint.setDither(true);
-        scratchPathPaint.setStyle(Paint.Style.STROKE);
-        scratchPathPaint.setStrokeJoin(Paint.Join.ROUND);
-        scratchPathPaint.setStrokeCap(Paint.Cap.ROUND);
-        scratchPathPaint.setStrokeWidth(brushSize);
-        scratchPathPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_OUT)); 
+        clipPath = new Path();
+        clipRect = new RectF();
 
-        foilPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        foilPaint.setStyle(Paint.Style.FILL);
+        setLayerType(LAYER_TYPE_HARDWARE, null);
 
-        borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        borderPaint.setStyle(Paint.Style.STROKE);
-        borderPaint.setStrokeWidth(borderSize);
+        // Paints Setup
+        scratchPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        scratchPaint.setStyle(Paint.Style.STROKE);
+        scratchPaint.setStrokeCap(Paint.Cap.ROUND);
+        scratchPaint.setStrokeJoin(Paint.Join.ROUND);
+        scratchPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+
+        overlayPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        
+        glassBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        glassBorderPaint.setStyle(Paint.Style.STROKE);
+        glassBorderPaint.setStrokeWidth(5f);
 
         textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        textPaint.setColor(scratchTextColor);
-        textPaint.setTextSize(scratchTextSize);
         textPaint.setTextAlign(Paint.Align.CENTER);
         textPaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-
-        bitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG); 
+        
+        scratchPaint.setStrokeWidth(brushSize);
+        particleEngine.setEnabled(particlesEnabled);
     }
+
+    // ==========================================
+    // PUBLIC SETTERS
+    // ==========================================
+
+    public void setOverlayBitmap(Bitmap bitmap) {
+        this.overlayImage = bitmap;
+        if (getWidth() > 0 && getHeight() > 0) {
+            resetScratchLayer(getWidth(), getHeight());
+        }
+    }
+
+    public void setListener(ScratchListener listener) {
+        this.listener = listener;
+    }
+
+    public void setReward(Reward reward) {
+        this.currentReward = reward;
+    }
+
+    public void reset() {
+        if (getWidth() > 0 && getHeight() > 0) {
+            resetScratchLayer(getWidth(), getHeight());
+        }
+        isScratchable = true;
+    }
+
+    // ==========================================
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        updateGradients(w, h);
-        cacheScaledBitmaps(w, h);
-        resetScratchBitmap(w, h);
+        
+        clipRect.set(0, 0, w, h);
+        clipPath.reset();
+        clipPath.addRoundRect(clipRect, cornerRadius, cornerRadius, Path.Direction.CW);
+
+        setupGlassBorder(w, h);
+        resetScratchLayer(w, h);
     }
 
-    private void cacheScaledBitmaps(int w, int h) {
-        if (w <= 0 || h <= 0) return;
-        if (overlayBitmap != null) scaledOverlayBitmap = Bitmap.createScaledBitmap(overlayBitmap, w, h, true);
-        if (revealBitmap != null) scaledRevealBitmap = Bitmap.createScaledBitmap(revealBitmap, w, h, true);
+    private void setupGlassBorder(int w, int h) {
+        if (glassEffectEnabled) {
+            LinearGradient neonGradient = new LinearGradient(0, 0, w, h, 
+                new int[]{Color.parseColor("#4F46E5"), Color.parseColor("#EC4899"), Color.parseColor("#8B5CF6")}, 
+                null, Shader.TileMode.CLAMP);
+            glassBorderPaint.setShader(neonGradient);
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                setRenderEffect(RenderEffect.createBlurEffect(2f, 2f, Shader.TileMode.CLAMP));
+            }
+        }
     }
 
-    private void updateGradients(int w, int h) {
-        if (w <= 0 || h <= 0) return;
-        foilPaint.setShader(new LinearGradient(0, 0, 0, h, new int[]{foilStartColor, foilEndColor}, null, Shader.TileMode.CLAMP));
-        borderPaint.setShader(new LinearGradient(0, h, w, 0, new int[]{borderStartColor, borderCenterColor, borderEndColor}, new float[]{0f, 0.5f, 1f}, Shader.TileMode.CLAMP));
-    }
-
-    private void resetScratchBitmap(int w, int h) {
+    private void resetScratchLayer(int w, int h) {
         if (w <= 0 || h <= 0) return;
         if (mScratchBitmap != null && !mScratchBitmap.isRecycled()) mScratchBitmap.recycle();
-        
+
         mScratchBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         mScratchCanvas = new Canvas(mScratchBitmap);
 
         RectF rect = new RectF(0, 0, w, h);
         
-        if (scaledOverlayBitmap != null) {
-            mScratchCanvas.drawBitmap(scaledOverlayBitmap, 0, 0, null);
+        if (overlayImage != null) {
+            Bitmap scaled = Bitmap.createScaledBitmap(overlayImage, w, h, true);
+            mScratchCanvas.drawBitmap(scaled, 0, 0, null);
         } else {
-            mScratchCanvas.drawRoundRect(rect, cornerRadius, cornerRadius, foilPaint);
-            Paint.FontMetrics fm = textPaint.getFontMetrics();
-            float textY = (h / 2f) - ((fm.descent + fm.ascent) / 2);
-            mScratchCanvas.drawText(scratchText, w / 2f, textY, textPaint);
+            LinearGradient foilGradient = new LinearGradient(0, 0, w, h, 
+                new int[]{Color.parseColor("#1E293B"), Color.parseColor("#334155"), Color.parseColor("#0F172A")}, 
+                null, Shader.TileMode.MIRROR);
+            Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            fillPaint.setShader(foilGradient);
+            mScratchCanvas.drawRoundRect(rect, cornerRadius, cornerRadius, fillPaint);
+            
+            textPaint.setColor(Color.WHITE);
+            textPaint.setTextSize(60f);
+            mScratchCanvas.drawText(scratchText, w / 2f, h / 2f + 20f, textPaint);
         }
 
         isRevealed = false;
-        bitmapPaint.setAlpha(255); 
-        mPaths.clear();
-        mLastPoints.clear();
+        overlayPaint.setAlpha(255);
         invalidate();
     }
 
+    // 🔴 FIX: dispatchDraw instead of onDraw so children (custom layouts) render properly underneath
     @Override
-    protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
+    protected void dispatchDraw(Canvas canvas) {
+        // Clip the entire canvas to the rounded rectangle
+        canvas.clipPath(clipPath);
+        
+        // Draws the custom child views FIRST (Your reward XML layout)
+        super.dispatchDraw(canvas);
 
-        if (scaledRevealBitmap != null) {
-            canvas.drawBitmap(scaledRevealBitmap, 0, 0, null);
+        // Draw Scratch Layer OVER the children
+        if (mScratchBitmap != null && !isRevealed) {
+            canvas.drawBitmap(mScratchBitmap, 0, 0, overlayPaint);
         }
 
-        if (mScratchBitmap != null && !mScratchBitmap.isRecycled()) {
-            canvas.drawBitmap(mScratchBitmap, 0, 0, bitmapPaint); 
-        }
+        // Draw Particles OVER the scratch layer
+        particleEngine.draw(canvas);
 
-        float inset = borderSize / 2f;
-        RectF borderRect = new RectF(inset, inset, getWidth() - inset, getHeight() - inset);
-        canvas.drawRoundRect(borderRect, cornerRadius, cornerRadius, borderPaint);
+        // Draw Glass Border
+        if (glassEffectEnabled) {
+            float inset = glassBorderPaint.getStrokeWidth() / 2f;
+            RectF borderRect = new RectF(inset, inset, getWidth() - inset, getHeight() - inset);
+            canvas.drawRoundRect(borderRect, cornerRadius, cornerRadius, glassBorderPaint);
+        }
+    }
+
+    // 🔴 FIX: Intercept touches. If not revealed, STEAL the touch so child buttons aren't clicked
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        if (!isScratchable || isRevealed) {
+            return super.onInterceptTouchEvent(ev); // Pass touch down to child layouts
+        }
+        return true; // Block children, redirect to our onTouchEvent for scratching
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (!isScratchable || isRevealed) return true;
+        if (!isScratchable || isRevealed) {
+            return super.onTouchEvent(event); // Let child layouts handle clicks
+        }
 
-        int action = event.getActionMasked();
         int pointerIndex = event.getActionIndex();
         int pointerId = event.getPointerId(pointerIndex);
-        
         float x = event.getX(pointerIndex);
         float y = event.getY(pointerIndex);
 
-        switch (action) {
+        switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_POINTER_DOWN:
-                if (!isScratching) {
-                    isScratching = true;
-                    listener.onScratchStart();
-                }
-                Path path = new Path();
-                path.moveTo(x, y);
-                mPaths.put(pointerId, path);
-                mLastPoints.put(pointerId, new PointF(x, y));
+                Path startPath = pathManager.startPath(pointerId, x, y);
+                mScratchCanvas.drawPath(startPath, scratchPaint);
+                if (listener != null) listener.onScratchStart();
                 break;
 
             case MotionEvent.ACTION_MOVE:
                 boolean needsInvalidate = false;
                 for (int i = 0; i < event.getPointerCount(); i++) {
                     int id = event.getPointerId(i);
-                    float px = event.getX(i);
-                    float py = event.getY(i);
-                    
-                    Path p = mPaths.get(id);
-                    PointF lastPoint = mLastPoints.get(id);
-                    
-                    if (p != null && lastPoint != null) {
-                        float dx = Math.abs(px - lastPoint.x);
-                        float dy = Math.abs(py - lastPoint.y);
-
-                        if (scratchDirection == ScratchDirection.HORIZONTAL && dy > dx * 1.5) continue;
-                        if (scratchDirection == ScratchDirection.VERTICAL && dx > dy * 1.5) continue;
-
-                        if (dx >= 4 || dy >= 4) {
-                            p.quadTo(lastPoint.x, lastPoint.y, (px + lastPoint.x) / 2, (py + lastPoint.y) / 2);
-                            lastPoint.set(px, py);
-                            mScratchCanvas.drawPath(p, scratchPathPaint);
-                            needsInvalidate = true;
+                    Path path = pathManager.updatePath(id, event.getX(i), event.getY(i));
+                    if (path != null) {
+                        mScratchCanvas.drawPath(path, scratchPaint);
+                        needsInvalidate = true;
+                        if (particlesEnabled && Math.random() > 0.6) {
+                            particleEngine.emitSparks(event.getX(i), event.getY(i), 2);
                         }
                     }
                 }
-                
                 if (needsInvalidate) {
                     invalidate();
-                    if (hapticEnabled && System.currentTimeMillis() - lastHapticTime > 50) {
-                        performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
-                        lastHapticTime = System.currentTimeMillis();
-                    }
-                    triggerRevealCheck();
+                    calculateRevealPercentAsync();
                 }
                 break;
 
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_POINTER_UP:
             case MotionEvent.ACTION_CANCEL:
-                mPaths.remove(pointerId);
-                mLastPoints.remove(pointerId);
-                
-                if (mPaths.size() == 0) {
-                    isScratching = false;
+                pathManager.endPath(pointerId);
+                if (event.getPointerCount() == 1 && listener != null) {
                     listener.onScratchEnd();
-                    calculateRevealPercentSafe(); 
                 }
                 break;
         }
         return true;
     }
 
-    private void triggerRevealCheck() {
-        if (System.currentTimeMillis() - lastCheckTime > 150 && !isCalculating) {
-            lastCheckTime = System.currentTimeMillis();
-            calculateRevealPercentSafe();
-        }
-    }
-
-    private void calculateRevealPercentSafe() {
-        if (isCalculating || isRevealed || mScratchBitmap == null || mScratchBitmap.isRecycled()) return;
+    private void calculateRevealPercentAsync() {
+        if (isCalculating || isRevealed || mScratchBitmap == null) return;
         isCalculating = true;
 
-        int w = mScratchBitmap.getWidth();
-        int h = mScratchBitmap.getHeight();
+        final Bitmap bitmapCopy = mScratchBitmap.copy(Bitmap.Config.ARGB_8888, false);
         
-        int[] pixels = new int[w * h];
-        mScratchBitmap.getPixels(pixels, 0, w, 0, 0, w, h);
+        asyncExecutor.execute(() -> {
+            int w = bitmapCopy.getWidth();
+            int h = bitmapCopy.getHeight();
+            int[] pixels = new int[w * h];
+            bitmapCopy.getPixels(pixels, 0, w, 0, 0, w, h);
 
-        new Thread(() -> {
-            int revealed = 0;
-            int totalPixels = w * h;
-            int step = performanceMode ? 10 : 3; 
+            int transparentCount = 0;
+            int step = 5; 
 
-            for (int i = 0; i < totalPixels; i += step) {
-                if ((pixels[i] >>> 24) == 0) revealed++;
+            for (int i = 0; i < pixels.length; i += step) {
+                if (Color.alpha(pixels[i]) == 0) transparentCount++;
             }
-            
-            final float percent = (float) revealed / (totalPixels / step);
 
-            post(() -> {
+            float percent = (float) transparentCount / (pixels.length / step);
+            bitmapCopy.recycle();
+
+            mainHandler.post(() -> {
                 isCalculating = false;
-                listener.onScratchProgress(percent);
-                
-                if (autoRevealEnabled && percent >= thresholdPercent && !isRevealed) {
-                    listener.onRevealThresholdReached(percent); 
-                    revealAutomatically();
+                if (listener != null) listener.onScratchProgress(percent);
+
+                if (autoReveal && percent >= revealThreshold && !isRevealed) {
+                    triggerRevealAnimation();
                 }
             });
-        }).start();
+        });
     }
 
-    public void revealAutomatically() {
+    public void triggerRevealAnimation() {
         if (isRevealed) return;
         isRevealed = true;
-        if (animationsEnabled) {
-            animateReveal();
-        } else {
-            clearCanvas();
-        }
-    }
+        isScratchable = false;
 
-    private void animateReveal() {
-        if (revealType == RevealType.FADE) {
-            ValueAnimator anim = ValueAnimator.ofInt(255, 0);
-            anim.setDuration(600);
-            anim.addUpdateListener(animation -> {
-                bitmapPaint.setAlpha((int) animation.getAnimatedValue());
-                invalidate();
-            });
-            anim.addListener(new AnimatorListenerAdapter() {
-                @Override public void onAnimationEnd(Animator animation) { clearCanvas(); }
-            });
-            anim.start();
-        } else {
-            clearCanvas();
+        if (particlesEnabled) {
+            particleEngine.emitConfetti(getWidth(), getHeight());
         }
-    }
 
-    public void resetAnimated() {
-        if (getWidth() <= 0) return;
-        resetScratchBitmap(getWidth(), getHeight());
-        bitmapPaint.setAlpha(0);
-        
-        ValueAnimator anim = ValueAnimator.ofInt(0, 255);
-        anim.setDuration(400);
-        anim.addUpdateListener(animation -> {
-            bitmapPaint.setAlpha((int) animation.getAnimatedValue());
+        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+
+        ValueAnimator anim = ValueAnimator.ofInt(255, 0);
+        anim.setDuration(800);
+        anim.addUpdateListener(a -> {
+            overlayPaint.setAlpha((int) a.getAnimatedValue());
             invalidate();
+        });
+        anim.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                if (listener != null) listener.onRevealed(currentReward);
+            }
         });
         anim.start();
     }
-
-    private void clearCanvas() {
-        if (mScratchCanvas != null) {
-            mScratchCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
-            bitmapPaint.setAlpha(255);
-            invalidate();
-        }
-        listener.onRevealed(hiddenReward);
-    }
-
-    @Override
-    protected Parcelable onSaveInstanceState() {
-        Bundle bundle = new Bundle();
-        bundle.putParcelable("superState", super.onSaveInstanceState());
-        bundle.putBoolean("isRevealed", isRevealed);
-        return bundle;
-    }
-
-    @Override
-    protected void onRestoreInstanceState(Parcelable state) {
-        if (state instanceof Bundle) {
-            Bundle bundle = (Bundle) state;
-            isRevealed = bundle.getBoolean("isRevealed");
-            state = bundle.getParcelable("superState");
-            if (isRevealed) post(this::clearCanvas);
-        }
-        super.onRestoreInstanceState(state);
-    }
-
-    public void setThresholdPercent(float percent) { 
-        this.thresholdPercent = percent; 
-    }
-
-    public void setAutoRevealEnabled(boolean enabled) {
-        this.autoRevealEnabled = enabled;
-    }
-
-    public void setScratchOverlayBitmap(Bitmap bitmap) {
-        this.overlayBitmap = bitmap;
-        if (getWidth() > 0) { cacheScaledBitmaps(getWidth(), getHeight()); reset(); }
-    }
-
-    public void setRevealBitmap(Bitmap bitmap) {
-        this.revealBitmap = bitmap;
-        if (getWidth() > 0) { cacheScaledBitmaps(getWidth(), getHeight()); invalidate(); }
-    }
-
-    public void setReward(Reward reward) { this.hiddenReward = reward; }
-    public void setScratchListener(ScratchListener listener) { this.listener = listener != null ? listener : this.listener; }
-    public void setHapticEnabled(boolean enabled) { this.hapticEnabled = enabled; }
-    public void setPerformanceMode(boolean enabled) { this.performanceMode = enabled; }
-    public void setScratchDirection(ScratchDirection direction) { this.scratchDirection = direction; }
-    public void setAnimationsEnabled(boolean enabled) { this.animationsEnabled = enabled; }
-
-    public void mask() { reset(); }
-    public void reset() { if (getWidth() > 0) resetScratchBitmap(getWidth(), getHeight()); }
-
-    private float dpToPx(float dp) {
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, getResources().getDisplayMetrics());
-    }
-
-    public static class SimpleReward implements Reward {
-        private String type; private Object data;
-        public SimpleReward(String type, Object data) { this.type = type; this.data = data; }
-        @Override public String getType() { return type; }
-        @Override public Object getData() { return data; }
-    }
 }
-*/
