@@ -32,7 +32,7 @@ dependencyResolutionManagement {
 **Step 2:** Add the dependency to your app-level build.gradle file:
 ```groovy
 dependencies {
-    implementation 'com.github.sketchlibx:Scratch-View-Gradient:beta-1.0.4'
+    implementation 'com.github.sketchlibx:Scratch-View-Gradient:v1.0.5'
 }
 
 ```
