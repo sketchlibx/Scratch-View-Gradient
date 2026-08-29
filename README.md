@@ -32,7 +32,7 @@ dependencyResolutionManagement {
 **Step 2:** Add the dependency to your app-level build.gradle file:
 ```groovy
 dependencies {
-    implementation 'com.github.sketchlibx:Scratch-View-Gradient:v1.0.5'
+    implementation 'com.github.sketchlibx:Scratch-View-Gradient:beta-1.0.4'
 }
 
 ```
@@ -45,11 +45,7 @@ Just wrap your custom reward layout inside the ScratchView tag.
     android:layout_width="300dp"
     android:layout_height="300dp"
     android:layout_centerInParent="true"
-    android:elevation="8dp"
-    app:sv_glassEffectEnabled="true"
-    app:sv_particlesEnabled="true"
-    app:sv_revealThreshold="0.2"
-    app:sv_brushSize="40dp">
+    android:elevation="8dp">
 
     <LinearLayout
         android:layout_width="match_parent"
